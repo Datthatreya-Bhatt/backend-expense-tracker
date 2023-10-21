@@ -1,18 +1,19 @@
 const path = require('path');
-require('dotenv').config();
-const Sib = require('sib-api-v3-sdk');
-const {v4: uuid } = require('uuid');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Sequelize  } = require('sequelize');
+const {v4: uuid } = require('uuid');
+require('dotenv').config();
 
+const sequelize = require('../model/sequelize');
 const {User,FPR} = require('../model/database');
 
+const SequelizeService = require('../services/sequelizeService');
+const SendinBlueService = require('../services/SendinBlueService');
 
-const sequelize = new Sequelize('expense', 'root', process.env.SQL_PASSWORD, {
-    host: 'localhost',
-    dialect: 'mysql',
-  });
+
+
+
+
 
 //For showing forgotpassword page
 exports.getforgotpasswordPage = (req,res,next)=>{
@@ -22,15 +23,17 @@ exports.getforgotpasswordPage = (req,res,next)=>{
 
 
 
+
+
 //For sending email
 exports.getEmail = async (req,res,next)=>{
     const t = await sequelize.transaction();
-    let email = req.body.email;
     let uid = uuid();
-    let userid = '';
+    let email = req.body.email;
+    
 
     try{
-        let user = await User.findOne({
+        let user = await SequelizeService.FindOneService(User,{
             attributes: ['id','email'],
             where: {
                 email: email
@@ -39,58 +42,29 @@ exports.getEmail = async (req,res,next)=>{
         })
 
         if(user){
-            userid = user.id;
-            
-        }
+            console.trace(user.id,user);
+            let data = await SequelizeService.CreateService(FPR,{
+                id: uid,
+                userId: Number(user.id),
+                isActive: true 
+
+            },{transaction: t})
+
+            let mail = await SendinBlueService.SibService(email,uid);
         
-        let data = await FPR.create({
-            id: uid,
-            userId: Number(userid),
-            isActive: true 
+            res.send('success');
+       
+         }
 
-        },{transaction: t})
-
-        
-    }catch(err){
-        await t.rollback();
-        console.error(err);
-    }
-
-    try{  
-        const client = Sib.ApiClient.instance;
-
-        const apiKey = client.authentications['api-key'];
-        apiKey.apiKey = process.env.SIB_API_KEY;
-
-        const transactionalEmailsApi = new Sib.TransactionalEmailsApi();
-
-        const sender = {
-            email: 'techkosha@gmail.com'
-        }
-
-        const receivers = [
-            {
-                email: `${email}`
-            }
-        ]
-
-        
-        let emailRes = await transactionalEmailsApi.sendTransacEmail({
-            sender,
-            to: receivers,
-            subject: 'test',
-            textContent: `http://localhost:3000/password/resetpassword/${uid}`
-        })
-
-        res.send('success');
-        
     await t.commit();
     }catch(err){
         await t.rollback();
-        console.error('line 88',err);
+        console.trace('line 88',err);
     }
 
 };
+
+
 
 
 
@@ -98,26 +72,30 @@ exports.getResetPage = async(req,res,next)=>{
     let uid = req.params.id;
 
     try{
-        let data = await FPR.findOne({
-           // attributes: ['id','isActive'],
+        let data = await SequelizeService.FindOneService(FPR,{
+           attributes: ['id','isActive'],
             where: {
                 id: uid,
                 isActive: 1
                
             }
         })
-        console.log(data);
+        console.trace(uid,data);
         if(data != null && data.isActive){
             res.status(200).sendFile(path.join(__dirname,'../','public','resetpassword.html'));
         }else{
             res.send('cannot find emailll');
         }
     }catch(err){
-        console.error(err);
+        console.trace(err);
     }
 
 
 };
+
+
+
+
 
 exports.postResetPas = async(req,res,next)=>{
     let uid = req.params.id;
@@ -125,17 +103,17 @@ exports.postResetPas = async(req,res,next)=>{
     let t = await sequelize.transaction();
 
     try{
-        let data = await FPR.findOne({
+        let data = await SequelizeService.FindOneService(FPR,{
             attributes: ['id','userId','isActive'],
             where: {
                 id: uid,
                 isActive: true
             }
         })
-        console.log(data,'line 130',data.isActive);
+        
         if(data.isActive){
             try{
-                let fpr = await FPR.update({
+                let fpr = await SequelizeService.UpdateService(FPR,{
                     isActive: false
                 },{
                     where: {
@@ -148,13 +126,13 @@ exports.postResetPas = async(req,res,next)=>{
 
 
                 //creating new user
-                const saltRound = 10;
-                let hash = await bcrypt.hash(password,saltRound);
+                
+                let hash = await bcrypt.hash(password,Number(process.env.SALT_ROUND));
                 
                 console.trace(hash);
                 
                 try {
-                    let user = await User.update({
+                    let user = await SequelizeService.UpdateService(User,{
                         password: hash
                     },{
                         where: {
@@ -170,7 +148,7 @@ exports.postResetPas = async(req,res,next)=>{
                         console.trace(user);
                     }
                  } catch (err) {
-                    console.error(err);
+                    console.trace(err);
                     
                  }
 
@@ -179,12 +157,12 @@ exports.postResetPas = async(req,res,next)=>{
 
 
             }catch(err){
-                console.error(err);
+                console.trace(err);
             }
         }
     await t.commit();
     }catch(err){
         await t.rollback();
-        console.error(err);
+        console.trace(err);
     }
 };

@@ -1,91 +1,73 @@
 const path = require('path');
-const AWS = require('aws-sdk');
-const { Sequelize  } = require('sequelize');
-
 require('dotenv').config();
 
+const sequelize = require('../model/sequelize');
 const {User, DownloadedFile,Expense} = require('../model/database');
 
 
-
-const sequelize = new Sequelize('expense', 'root', process.env.SQL_PASSWORD, {
-    host: 'localhost',
-    dialect: 'mysql',
-  });
+const SequelizeService = require('../services/sequelizeService');
+const s3Service = require('../services/s3Service');
 
 
-//For showing expense page
+
+
+
+//For showing premium expense page
 exports.getPremiumPage = (req,res,next)=>{
     res.status(200).sendFile(path.join(__dirname,'../','public','premium.html'));
 
 };
 
+
+
+
+
+//to send leaderboard page
+exports.getLeaderboardPage = (req,res,next)=>{
+  res.status(200).sendFile(path.join(__dirname,'../','public','leaderboard.html'));
+
+};
+
+
+
+
+
+//to send leaderboard data
 exports.getLeaderBoard = async(req,res,next)=>{
-    
+  let page = Number( req.params.page);
+  let limit = Number(req.query.limit);
+  
   try{
 
-    
-    let leaderBoard = await User.findAll({
+    let leaderBoard = await SequelizeService.FindAllService(User,{
       attributes:['name','total_expense'] ,
+      offset: (page-1)*limit,
+      limit: limit,
       order: [['total_expense', 'DESC']]
     });
     
   
+    let count = await SequelizeService.CountService(User);
 
+    //console.trace(leaderBoard, count);
+    
+    count = Math.ceil(count/limit);
+    let obj = {
+        count: count,
+        page: page
+    }
 
-    res.send(leaderBoard);
-  
+    if(leaderBoard){    
+      res.send({user: leaderBoard, obj: obj });
+    }
+    else{
+      res.send('fail');
+    }
+
   }catch(err){
     console.error(err);
   }
   
-};
-
-
-async function uploadToS3(data,fileName){
-  try{
-    const BUCKET_NAME = process.env.BUCKET_NAME;
-    const IAM_USER_KEY = process.env.IAM_USER_KEY;
-    const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
-
-    let s3bucket = new AWS.S3({
-      accessKeyId: IAM_USER_KEY,
-      secretAccessKey: IAM_USER_SECRET,
-    
-    })
-
-  
-    const params = {
-      Bucket: BUCKET_NAME,
-      Key: fileName,
-      Body: data,
-      ACL: 'public-read'
-    }
-
-   
-    return new Promise((resolve,reject)=>{
-      s3bucket.upload(params,(err,s3Res)=>{
-      if(err){
-        console.trace('something went wrong: ',err);
-        reject(err);
-       
-      }
-      else{
-        console.trace('success', s3Res);
-        resolve(s3Res);
-
-      }
-
-
-      })
-    })
-    /*,  */
-   
-
-  }catch(err){
-    console.trace(err);
-  }
-
 };
 
 
@@ -94,35 +76,39 @@ async function uploadToS3(data,fileName){
 
 
 exports.downloadExpense = async(req,res,next)=>{
+  let t = await sequelize.transaction();
+
     try{
-		    let t = await sequelize.transaction();
+		    
         let id = req.userID;
-        const user = await Expense.findAll({
+        const user = await SequelizeService.FindAllService(Expense,{
             where:{
                 userId:id
             }
         });
+
         if(user){
           let stringyfy = JSON.stringify(user);
           let filename = `Expense${id}-${new Date()}.txt`;
-          let fileUrl = await uploadToS3(stringyfy,filename);
-          
+          let fileUrl = await s3Service.uploadToS3(stringyfy,filename);
+ 
+          let link1 = await SequelizeService.CreateService(DownloadedFile,{
+          userId: id,
+          links: fileUrl.Location
+          },
+          {transaction: t
+          })
 
-		  let link1 = await DownloadedFile.create({
-			userId: id,
-			links: fileUrl.Location
-		  },
-		  {transaction: t
-		  })
-      console.trace(link1);
-          res.status(200).send(fileUrl.Location);  
+          console.trace(link1);
+          res.send(fileUrl.Location); 
+
         }
     
-    t.commit();
+    await t.commit();
     }catch(err){
-        t.rollback();
-        console.error(err);
-        res.status(500).send(err);
+        await t.rollback();
+        console.trace(err);
+        res.send(err);
     }
 
 
@@ -132,18 +118,44 @@ exports.downloadExpense = async(req,res,next)=>{
 
 
 
+//to send downloaded file data
 exports.downloadList = async(req,res,next)=>{
-
+  
   let id = req.userID;
+  let page = Number( req.params.page);
+  let limit = Number(req.query.limit);
+  
+  
+
   try{
-    let list = await DownloadedFile.findAll({
+    let list = await SequelizeService.FindAllService(DownloadedFile,{
       attributes: ['userId','links'],
+      offset: (page-1)*limit,
+      limit: limit,
       where: {
         userId: id
       }
     })
-    console.trace(list);
-    res.send(list);
+
+    let count = await SequelizeService.CountService(DownloadedFile,{
+      where: {
+          userId: id
+      }
+    });
+
+    count = Math.ceil(count/limit);
+    let obj = {
+        count: count,
+        page: page
+    }
+
+    if(list){
+      res.send({user: list, obj: obj });
+    }
+    else{
+      res.send('fail');
+    }
+    
   }catch(err){
     console.trace(err);
   }
@@ -153,6 +165,13 @@ exports.downloadList = async(req,res,next)=>{
 
 
 
+
+
+//to send downloaded file page
+exports.getDownloadedListPage = (req,res,next)=>{
+  res.status(200).sendFile(path.join(__dirname,'../','public','downloadlist.html'));
+
+};
 
 
 

@@ -1,75 +1,48 @@
-const Razorpay = require('razorpay');
-const { Sequelize } = require('sequelize');
-
-const {Orders} = require('../model/database');
-
 require('dotenv').config();
 
+const sequelize = require('../model/sequelize');
+const {Orders} = require('../model/database');
 
-const sequelize = new Sequelize('expense', 'root', process.env.SQL_PASSWORD, {
-    host: 'localhost',
-    dialect: 'mysql',
-  });
+const SequelizeService = require('../services/sequelizeService');
+const razorpayService = require('../services/razorpayService');
 
 
 
 exports.getPurchase = async(req,res,next)=>{
     const t = await sequelize.transaction();
-    try{
-        let amount = 99999;
-        
-        let rzp = new Razorpay({
-            key_id: RAZORP_KEY_ID,
-            key_secret: RAZORP_KEY_S
-        })
-        
-        rzp.orders.create({
-        amount: amount,
-        currency: "INR",
-        },
-        async(err,order)=>{
-            if(err){
-                console.error(err);
-            }else{
-                try{
-                    order.key = RAZORP_KEY_ID;
-                    res.send(order);
-                    try{
-                        const data = await Orders.create({
-                            paymentid: "No id now",
-                            orderid: order.id,
-                            status: "pending",
-                            userId: req.userID,
-                            
-                        },{transaction: t}
-                        )
-                        if(data){
-                            console.log('order table created');
-                           
-                        }
-                        else{
-                            console.log('error in creating order table');
-                        }
-                    }catch(err){
-                        console.error(err);
-                       
-                    }
-                    
 
-                }catch(err){
-                    console.error(err);
-                }
-            }
-        }
-        );
+    try {
+        const amount = 99999;
 
-     await t.commit();
+        const order = await razorpayService.createOrder(amount);
 
-    }catch(err){
+        res.status(201).send(order);
+
+        //creating the order table
+
+        const data = await Orders.create({
+            paymentid: "No id now",
+            orderid: order.id,
+            status: "pending",
+            userId: req.userID,
+            
+        },{transaction: t}
+        )
+
+        await t.commit();
+
+    } catch (err) {
         await t.rollback();
-        console.error(err);
+        console.trace(err);
     }
+
+
 };
+
+
+
+
+
 
 
 exports.postSuccess = async(req,res,next)=>{
@@ -79,7 +52,7 @@ exports.postSuccess = async(req,res,next)=>{
 
     try{
 
-        let data = await Orders.update({
+        let data = await SequelizeService.UpdateService(Orders,{
             orderid: order_id,
             paymentid: payment_id,
             status: 'SUCCESS',
@@ -95,18 +68,18 @@ exports.postSuccess = async(req,res,next)=>{
         if(data){
             res.send('task complete');
             await t.commit();
-        }else{
-            console.log('error in post success line 86');
         }
-
         
 
     }catch(err){
-        console.error(err);
+        console.trace(err);
         await t.rollback();
     }
     
 };
+
+
+
 
 
 exports.postFailed = async(req,res,next)=>{
@@ -116,7 +89,7 @@ exports.postFailed = async(req,res,next)=>{
     const t = await sequelize.transaction();
 
     try{
-        let data = await Orders.update({
+        let data = await SequelizeService.UpdateService(Orders,{
             orderid: order_id,
             paymentid: payment_id,
             status: 'FAILED',
@@ -140,7 +113,7 @@ exports.postFailed = async(req,res,next)=>{
         }
 
     }catch(err){
-        console.error(err);
+        console.trace(err);
         await t.rollback();
     }
 

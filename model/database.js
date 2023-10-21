@@ -1,11 +1,9 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const password = require('../credentials/mysql');
+require('dotenv').config();
+
+const sequelize = require('../model/sequelize');
 
 
-const sequelize = new Sequelize('expense', 'root', password, {
-    host: 'localhost',
-    dialect: 'mysql',
-  });
 
 
 const User = sequelize.define('user', {
@@ -137,9 +135,9 @@ const DownloadedFile = sequelize.define('downloadedFile',{
 
 
 // Create the table in the database
-async function createTable(obj) {
+async function createTable() {
   try {
-    await obj.sync({ force: false });
+    await sequelize.sync({ force: false });
     console.log('Table created successfully.');
   } catch (error) {
     console.error('Unable to create table:', error);
@@ -159,15 +157,8 @@ ForgotPasswordRequests.belongsTo(User);
 User.hasMany(DownloadedFile);
 DownloadedFile.belongsTo(User);
 
-let ex = async()=>{
-    await createTable(User);
-    await createTable(Expense);
-    await createTable(Orders);
-    await createTable(ForgotPasswordRequests);
-    await createTable(DownloadedFile);
-}
 
-ex();
+
 
 
 

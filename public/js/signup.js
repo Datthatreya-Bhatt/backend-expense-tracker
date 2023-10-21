@@ -1,3 +1,7 @@
+// let url = 'http://54.208.165.234';
+let url = 'http://localhost:3000';
+
+
 document.getElementById('button').addEventListener('click',async(e)=>{
     e.preventDefault();
     let name = document.getElementById('name').value;
@@ -5,11 +9,14 @@ document.getElementById('button').addEventListener('click',async(e)=>{
     let password = document.getElementById('password').value;
     
     try{
-    let res = await axios.post('http://localhost:3000/user/signup',{
+        let res = await axios.post(`${url}/user/signup`,{
         name: name,
         email: email,
         password: password
     });
+
+
+console.log(res);
 
     if(res.data === 'fail'){
         alert('user already exists');
@@ -19,7 +26,7 @@ document.getElementById('button').addEventListener('click',async(e)=>{
     }
     else if (res.data === 'success'){
         alert('account created');
-        location.href = 'http://localhost:3000/user/login';
+        location.href = `${url}/user/login`;
     }
     
     }catch(err){
