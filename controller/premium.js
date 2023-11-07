@@ -34,10 +34,11 @@ exports.getLeaderboardPage = (req,res,next)=>{
 
 //to send leaderboard data
 exports.getLeaderBoard = async(req,res,next)=>{
-  let page = Number( req.params.page);
-  let limit = Number(req.query.limit);
+
   
   try{
+    let page = Number( req.params.page);
+    let limit = Number(req.query.limit);
 
     let leaderBoard = await SequelizeService.FindAllService(User,{
       attributes:['name','total_expense'] ,
@@ -65,7 +66,7 @@ exports.getLeaderBoard = async(req,res,next)=>{
     }
 
   }catch(err){
-    console.error(err);
+    console.trace(err);
   }
   
 };
@@ -76,10 +77,11 @@ exports.getLeaderBoard = async(req,res,next)=>{
 
 
 exports.downloadExpense = async(req,res,next)=>{
-  let t = await sequelize.transaction();
+  let t;
 
     try{
-		    
+        t = await sequelize.transaction();
+
         let id = req.userID;
         const user = await SequelizeService.FindAllService(Expense,{
             where:{
@@ -120,45 +122,44 @@ exports.downloadExpense = async(req,res,next)=>{
 
 //to send downloaded file data
 exports.downloadList = async(req,res,next)=>{
-  
-  let id = req.userID;
-  let page = Number( req.params.page);
-  let limit = Number(req.query.limit);
-  
-  
+ 
+    try{
+        
+        let id = req.userID;
+        let page = Number( req.params.page);
+        let limit = Number(req.query.limit);
+      
+        let list = await SequelizeService.FindAllService(DownloadedFile,{
+          attributes: ['userId','links'],
+          offset: (page-1)*limit,
+          limit: limit,
+          where: {
+            userId: id
+          }
+        })
 
-  try{
-    let list = await SequelizeService.FindAllService(DownloadedFile,{
-      attributes: ['userId','links'],
-      offset: (page-1)*limit,
-      limit: limit,
-      where: {
-        userId: id
-      }
-    })
+        let count = await SequelizeService.CountService(DownloadedFile,{
+          where: {
+              userId: id
+          }
+        });
 
-    let count = await SequelizeService.CountService(DownloadedFile,{
-      where: {
-          userId: id
-      }
-    });
+        count = Math.ceil(count/limit);
+        let obj = {
+            count: count,
+            page: page
+        }
 
-    count = Math.ceil(count/limit);
-    let obj = {
-        count: count,
-        page: page
+        if(list){
+          res.send({user: list, obj: obj });
+        }
+        else{
+          res.send('fail');
+        }
+      
+    }catch(err){
+      console.trace(err);
     }
-
-    if(list){
-      res.send({user: list, obj: obj });
-    }
-    else{
-      res.send('fail');
-    }
-    
-  }catch(err){
-    console.trace(err);
-  }
 
 
 }

@@ -27,12 +27,13 @@ exports.getforgotpasswordPage = (req,res,next)=>{
 
 //For sending email
 exports.getEmail = async (req,res,next)=>{
-    const t = await sequelize.transaction();
-    let uid = uuid();
-    let email = req.body.email;
     
-
+    let t;
     try{
+        t = await sequelize.transaction();
+        let uid = uuid();
+        let email = req.body.email;
+        
         let user = await SequelizeService.FindOneService(User,{
             attributes: ['id','email'],
             where: {
@@ -69,9 +70,10 @@ exports.getEmail = async (req,res,next)=>{
 
 
 exports.getResetPage = async(req,res,next)=>{
-    let uid = req.params.id;
 
     try{
+        let uid = req.params.id;
+
         let data = await SequelizeService.FindOneService(FPR,{
            attributes: ['id','isActive'],
             where: {
@@ -86,6 +88,7 @@ exports.getResetPage = async(req,res,next)=>{
         }else{
             res.send('cannot find emailll');
         }
+
     }catch(err){
         console.trace(err);
     }
@@ -98,11 +101,13 @@ exports.getResetPage = async(req,res,next)=>{
 
 
 exports.postResetPas = async(req,res,next)=>{
-    let uid = req.params.id;
-    let password = req.body.password;
-    let t = await sequelize.transaction();
 
+    let t;
     try{
+        let uid = req.params.id;
+        let password = req.body.password;
+        t = await sequelize.transaction();
+
         let data = await SequelizeService.FindOneService(FPR,{
             attributes: ['id','userId','isActive'],
             where: {

@@ -22,66 +22,72 @@ exports.signup = (req,res,next)=>{
 
 
 exports.postData = async(req,res,next)=>{
-    const t = await sequelize.transaction();
+    let t;
+    try {
+    
+        t = await sequelize.transaction();
 
-    const {name,email,password} = req.body;
+        const {name,email,password} = req.body;
 
-    //to check if all the inputs are filled
-    if(name.length>0 && email.length>0 && password.length>0){
-        //To check if email exists
-        try {
-            const user = await SequelizeService.FindOneService(User, {
-                where: {
-                  email: email,
-                },
-                attributes: ['email'],
-              });
-
-            if (user) {
-                res.send('fail');
-                
-            }
-            else {
-
-                console.log('No user found with the input email');
-
-                //creating new user
-                bcrypt.hash(password,Number(process.env.SALT_ROUND),async(err,hash)=>{
-                    if(err){
-                        console.trace('enryption error',err);
-                    }
-                    else{
-                        try {
-                            
-                            const user = await SequelizeService.CreateService(User,{
-                              name: name,
-                              email: email,
-                              password: hash,
-                              total_expense: 0.00,
-                            },{transaction: t
-                            });
-                        
-                            if(user){
-                                res.send('success');
-                                await t.commit();
-                            }
-
-                        } catch (error) {
-                            await t.rollback();
-                            console.trace('Error creating user:', error);
-                        }
-                    }  
-              
+        //to check if all the inputs are filled
+        if(name.length>0 && email.length>0 && password.length>0){
+            //To check if email exists
+    
+                const user = await SequelizeService.FindOneService(User, {
+                    where: {
+                    email: email,
+                    },
+                    attributes: ['email'],
                 });
-                //
-            }
-            
-        } catch (error) {
-        console.trace(error);
+
+                if (user) {
+                    res.send('fail');
+                    
+                }
+                else {
+
+                
+                    //creating new user
+                    bcrypt.hash(password,Number(process.env.SALT_ROUND),async(err,hash)=>{
+                        if(err){
+                            console.trace('enryption error',err);
+                        }
+                        else{
+             
+                                
+                                const user = await SequelizeService.CreateService(User,{
+                                    name: name,
+                                    email: email,
+                                    password: hash,
+                                    total_expense: 0.00,
+                                    },
+                                    {transaction: t}
+                                );
+                            
+                                if(user){
+                                    res.send('success');
+                                }
+
+                        }  
+                
+                    });
+                
+                }
+                
+            await t.commit();
+        
+        }else{
+            res.send('length');
         }
-    }else{
-        res.send('length');
-    }        
+
+    } catch (error) {
+        await t.rollback();
+        console.trace(error);
+    }
+    
+    
+
+
 };
 
 
@@ -98,9 +104,9 @@ exports.getlogin = (req,res,next)=>{
 
 
 isPremium = async(req,res,next)=>{
-    let id = req.userID;
     try{
-
+       
+        let id = req.userID;
         let data = await SequelizeService.FindOneService(Orders,{
             where:{
                 userId: id,
@@ -128,11 +134,11 @@ isPremium = async(req,res,next)=>{
 
 //to validate login page
 exports.postlogin = async(req,res,next)=>{
-    const {email,password} = req.body;
     
     //to check password and email
-
     try{
+        
+        const {email,password} = req.body;
         const user = await SequelizeService.FindOneService(User,{
             where:{
                 email: email 
@@ -158,9 +164,9 @@ exports.postlogin = async(req,res,next)=>{
                 console.log(err);
                }
                else{
-                
                     res.send('incorrect');
                }
+
             });
         }
         else if(user === null){

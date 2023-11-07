@@ -6,7 +6,7 @@ exports.auth = async (req,res,next)=>{
     let token = req.header('Authorization');
 
     
-    let validity = await jwt.verify(`${token}`,process.env.JWT_S_KEY);
+    let validity = jwt.verify(`${token}`,process.env.JWT_S_KEY);
 
 
     if(validity){

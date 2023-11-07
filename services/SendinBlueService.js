@@ -6,9 +6,11 @@ const client = Sib.ApiClient.instance;
 const apiKey = client.authentications['api-key'];
 apiKey.apiKey = process.env.SIB_API_KEY;
 
-
+let url = 'localhost:3000';
 
 exports.SibService = async (email,uid)=>{
+    try{
+
         const transactionalEmailsApi = new Sib.TransactionalEmailsApi();
 
         const sender = {
@@ -26,9 +28,12 @@ exports.SibService = async (email,uid)=>{
             sender,
             to: receivers,
             subject: 'test',
-            textContent: `http://54.208.165.234/password/resetpassword/${uid}`
+            textContent: `http://${url}/password/resetpassword/${uid}`
         })
 
         return emailRes;
-
+    }
+    catch(err){
+        console.trace(err);
+    }
 };

@@ -23,12 +23,13 @@ exports.getData= (req,res,next)=>{
 
 
 exports.getExpenseData = async (req,res,next)=>{
-   
-    let id = req.userID;
-    let page = Number( req.params.page);
-    let limit = Number(req.query.limit);
+
     
     try{
+   
+        let id = req.userID;
+        let page = Number( req.params.page);
+        let limit = Number(req.query.limit);
 
         const user = await SequelizeService.FindAllService(Expense,{
             offset: (page-1)*limit,
@@ -68,12 +69,14 @@ exports.getExpenseData = async (req,res,next)=>{
 
 
 exports.postData = async (req,res,next)=>{
-    let {amount,description,category} = req.body;
-    const t = await sequelize.transaction();
 
-    if(amount.length>0 && description.length>0 && category.length>0){
-        let id = req.userID;
-        try{
+    let t;
+    try{
+        let {amount,description,category} = req.body;
+        t = await sequelize.transaction();
+    
+        if(amount.length>0 && description.length>0 && category.length>0){
+            let id = req.userID;
 
             //updating expense table
             const expense = await SequelizeService.CreateService(Expense,
@@ -122,13 +125,14 @@ exports.postData = async (req,res,next)=>{
             if(update){
                await t.commit();
             }
-
-        }catch(err){
-            console.error(err);
-            await t.rollback();
         }
-
+    
+    }catch(err){
+        console.error(err);
+        await t.rollback();
     }
+
+    
 };
 
 
@@ -138,10 +142,12 @@ exports.postData = async (req,res,next)=>{
 
 
 exports.deleteData = async (req,res,next)=>{
-    let id = req.userID;
-    let entry = req.params.id;
-    const t = await sequelize.transaction();
+
+    let t;
     try{
+        let id = req.userID;
+        let entry = req.params.id;
+        t = await sequelize.transaction();
 
         //for getting amount from Expense table
         let data  = await SequelizeService.FindOneService(Expense,{

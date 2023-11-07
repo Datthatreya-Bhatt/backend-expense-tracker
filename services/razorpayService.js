@@ -10,20 +10,26 @@ const rzp = new Razorpay({
 
 
 exports.createOrder = (amount) => {
-  return new Promise((resolve, reject) => {
-    rzp.orders.create(
-      {
-        amount: amount,
-        currency: 'INR'
-      },
-      (err, order) => {
-        if (err) {
-          reject(err);
-        } else {
-          order.key = RAZORP_KEY_ID;
-          resolve(order);
+  try{
+
+    return new Promise((resolve, reject) => {
+      rzp.orders.create(
+        {
+          amount: amount,
+          currency: 'INR'
+        },
+        (err, order) => {
+          if (err) {
+            reject(err);
+          } else {
+            order.key = RAZORP_KEY_ID;
+            resolve(order);
+          }
         }
-      }
-    );
-  });
+      );
+    });
+  }
+  catch(err){
+    console.trace(err);
+  }
 };

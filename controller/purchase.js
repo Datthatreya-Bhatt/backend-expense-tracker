@@ -9,9 +9,9 @@ const razorpayService = require('../services/razorpayService');
 
 
 exports.getPurchase = async(req,res,next)=>{
-    const t = await sequelize.transaction();
-
+    let t;
     try {
+        const t = await sequelize.transaction();
         const amount = 99999;
 
         const order = await razorpayService.createOrder(amount);
@@ -46,11 +46,12 @@ exports.getPurchase = async(req,res,next)=>{
 
 
 exports.postSuccess = async(req,res,next)=>{
-    let order_id = req.body.res.razorpay_order_id;
-    let payment_id = req.body.res.razorpay_payment_id;
-    const t = await sequelize.transaction();
+    let t;
 
     try{
+        let order_id = req.body.res.razorpay_order_id;
+        let payment_id = req.body.res.razorpay_payment_id;
+        t = await sequelize.transaction();
 
         let data = await SequelizeService.UpdateService(Orders,{
             orderid: order_id,
@@ -83,12 +84,16 @@ exports.postSuccess = async(req,res,next)=>{
 
 
 exports.postFailed = async(req,res,next)=>{
-    let order_id = req.body.res.error.metadata.order_id;
-    let payment_id = req.body.res.error.metadata.payment_id;
-
-    const t = await sequelize.transaction();
-
+    let t;
+    
     try{
+        let order_id = req.body.res.error.metadata.order_id;
+        let payment_id = req.body.res.error.metadata.payment_id;
+    
+        t = await sequelize.transaction();
+    
+
+
         let data = await SequelizeService.UpdateService(Orders,{
             orderid: order_id,
             paymentid: payment_id,
