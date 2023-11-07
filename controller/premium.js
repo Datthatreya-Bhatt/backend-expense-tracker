@@ -66,6 +66,7 @@ exports.getLeaderBoard = async(req,res,next)=>{
     }
 
   }catch(err){
+    res.send(err);
     console.trace(err);
   }
   
@@ -158,6 +159,7 @@ exports.downloadList = async(req,res,next)=>{
         }
       
     }catch(err){
+      res.send(err);
       console.trace(err);
     }
 

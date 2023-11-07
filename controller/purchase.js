@@ -32,6 +32,7 @@ exports.getPurchase = async(req,res,next)=>{
         await t.commit();
 
     } catch (err) {
+        res.send(err);
         await t.rollback();
         console.trace(err);
     }
@@ -73,6 +74,7 @@ exports.postSuccess = async(req,res,next)=>{
         
 
     }catch(err){
+        res.send(err);
         console.trace(err);
         await t.rollback();
     }
@@ -85,7 +87,7 @@ exports.postSuccess = async(req,res,next)=>{
 
 exports.postFailed = async(req,res,next)=>{
     let t;
-    
+
     try{
         let order_id = req.body.res.error.metadata.order_id;
         let payment_id = req.body.res.error.metadata.payment_id;
@@ -118,6 +120,7 @@ exports.postFailed = async(req,res,next)=>{
         }
 
     }catch(err){
+        res.send(err);
         console.trace(err);
         await t.rollback();
     }

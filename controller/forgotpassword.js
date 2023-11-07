@@ -59,6 +59,7 @@ exports.getEmail = async (req,res,next)=>{
 
     await t.commit();
     }catch(err){
+        res.send(err);
         await t.rollback();
         console.trace('line 88',err);
     }
@@ -90,6 +91,7 @@ exports.getResetPage = async(req,res,next)=>{
         }
 
     }catch(err){
+        res.send(err);
         console.trace(err);
     }
 
@@ -167,6 +169,7 @@ exports.postResetPas = async(req,res,next)=>{
         }
     await t.commit();
     }catch(err){
+        res.send(err);
         await t.rollback();
         console.trace(err);
     }

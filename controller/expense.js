@@ -57,6 +57,7 @@ exports.getExpenseData = async (req,res,next)=>{
         }
     
     }catch(err){
+        res.send(err);
         console.error(err);
     }
 
@@ -128,6 +129,7 @@ exports.postData = async (req,res,next)=>{
         }
     
     }catch(err){
+        res.send(err);
         console.error(err);
         await t.rollback();
     }
@@ -199,6 +201,7 @@ exports.deleteData = async (req,res,next)=>{
 
     }
     catch(err){
+        res.send(err);
         console.error(err);
         await t.rollback();
     

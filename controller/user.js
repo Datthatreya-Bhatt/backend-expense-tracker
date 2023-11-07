@@ -81,6 +81,7 @@ exports.postData = async(req,res,next)=>{
         }
 
     } catch (error) {
+        res.send(err);
         await t.rollback();
         console.trace(error);
     }
